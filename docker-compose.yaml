@@ -1,0 +1,48 @@
+services:
+  web:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+      - DATABASE_URL=file:/app/prisma/dev.db
+      - PORT=3000
+      - HOST=0.0.0.0
+      - ORIGIN=http://localhost:3000
+      - PROTOCOL_HEADER=x-forwarded-proto
+      - HOST_HEADER=x-forwarded-host
+    volumes:
+      - sqlite_data:/app/prisma
+    depends_on:
+      migration:
+        condition: service_completed_successfully
+    networks:
+      - app_network
+
+  migration:
+    build: 
+      context: .
+      target: runtime
+    command: >
+      sh -c "
+        if [ ! -f /app/prisma/dev.db ]; then
+          echo 'Database file not found. Running initial setup...'
+          npx prisma migrate deploy &&
+          node prisma/seed.js &&
+          NODE_ENV=development node prisma/seed.js
+        else
+          echo 'Database file exists. Skipping initial setup.'
+        fi"
+    environment:
+      - DATABASE_URL=file:/app/prisma/dev.db
+    volumes:
+      - sqlite_data:/app/prisma
+    networks:
+      - app_network
+
+volumes:
+  sqlite_data:
+
+networks:
+  app_network:
+    driver: bridge

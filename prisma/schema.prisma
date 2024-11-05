@@ -1,0 +1,57 @@
+// prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model Business {
+  id          Int       @id @default(autoincrement())
+  name        String
+  address     String
+  type        String
+  description String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  chats       Chat[]
+}
+
+model ChatType {
+  id                    Int      @id @default(autoincrement())
+  type                  String   @unique
+  title                 String
+  description           String
+  systemPrompt          String
+  assistantGreeting     String
+  icon                  String
+  modelName             String   @default("gpt-4o")
+  responseType          String   @default("TEXT") // Changed from enum to string
+  chats                 Chat[]
+}
+
+model Chat {
+  id          Int       @id @default(autoincrement())
+  businessId  Int
+  business    Business  @relation(fields: [businessId], references: [id])
+  type        String    
+  title       String
+  chatType    ChatType  @relation(fields: [type], references: [type])
+  createdAt   DateTime  @default(now())
+  messages    Message[]
+  
+  @@index([businessId])
+  @@index([type])
+}
+
+model Message {
+  id        Int      @id @default(autoincrement())
+  chatId    Int
+  chat      Chat     @relation(fields: [chatId], references: [id])
+  content   String
+  role      String   // "user" or "assistant" or "system"
+  createdAt DateTime @default(now())
+}
